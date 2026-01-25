@@ -1,0 +1,69 @@
+/**
+ * Waveforms4j is distributed under the GNU General Public License version 3 and is also available
+ * under alternative licenses negotiated directly with Knowm, Inc.
+ *
+ * <p>Copyright (c) 2016-2020 Knowm Inc. www.knowm.org
+ *
+ * <p>This package also includes various components that are not part of Waveforms4j itself:
+ *
+ * <p>* `NativeUtils`: Copyright 2012 Adam Heinrich, MIT License * `dwf.h`: Copyright 2013 Digilent
+ * Inc., no license defined * `Multibit`: Copyright 2011 multibit.org, MIT License
+ *
+ * <p>Knowm, Inc. holds copyright and/or sufficient licenses to all components of the Waveforms4j
+ * package, and therefore can grant, at its sole discretion, the ability for companies, individuals,
+ * or organizations to create proprietary or open source (even if not GPL) modules which may be
+ * dynamically linked at runtime with the portions of Waveforms4j which fall under our
+ * copyright/license umbrella, or are distributed under more flexible licenses than GPL.
+ *
+ * <p>The 'Knowm' name and logos are trademarks owned by Knowm, Inc.
+ *
+ * <p>If you have any questions regarding our licensing policy, please contact us at
+ * `contact@knowm.org`.
+ */
+package org.example.demo2.Test;
+
+import org.knowm.waveforms4j.DWF;
+
+public class AnalogOutSine {
+
+  final DWF dwf = new DWF();
+
+  public static void main(String[] args) throws InterruptedException {
+
+    AnalogOutSine app = new AnalogOutSine();
+
+    app.go();
+  }
+
+  private void go() throws InterruptedException {
+
+    boolean successful = dwf.FDwfDeviceOpen();
+    System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfAnalogOutNodeEnableSet(0, true);
+    System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfAnalogOutNodeFunctionSet(0, 1);
+    System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfAnalogOutNodeFrequencySet(0, 1000);
+    System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfAnalogOutNodeAmplitudeSet(0, 5);
+    System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfAnalogOutNodeOffsetSet(0, 0);
+    System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfAnalogOutConfigure(0, true);
+    System.out.println("successful: " + successful);
+
+    Thread.sleep(20000);
+
+    // successful = dwf.FDwfDigitalOutReset();
+    // System.out.println("successful: " + successful);
+
+    successful = dwf.FDwfDeviceCloseAll();
+    System.out.println("successful: " + successful);
+  }
+}

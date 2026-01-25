@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.ScatterChart?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.demo2.controller.MainController">
+
+    <!-- Left side - Charts -->
+    <center>
+        <VBox spacing="5" VBox.vgrow="ALWAYS">
+            <VBox.margin>
+                <Insets left="5" right="5" top="5" bottom="5"/>
+            </VBox.margin>
+
+            <!-- Time Chart CH0 -->
+            <VBox VBox.vgrow="ALWAYS">
+                <LineChart fx:id="timeChartCH0" createSymbols="false" animated="false"
+                           title="Kanał CH0 - Indukcja magnetyczna B(t)"
+                           minHeight="200" VBox.vgrow="ALWAYS">
+                    <xAxis>
+                        <NumberAxis label="Próbka" side="BOTTOM"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="CH0 (∫V → B) [jedn.]" side="LEFT"/>
+                    </yAxis>
+                </LineChart>
+            </VBox>
+
+            <!-- Time Chart CH1 -->
+            <VBox VBox.vgrow="ALWAYS">
+                <LineChart fx:id="timeChartCH1" createSymbols="false" animated="false"
+                           title="Kanał CH1 - Natężenie pola H(t)"
+                           minHeight="200" VBox.vgrow="ALWAYS">
+                    <xAxis>
+                        <NumberAxis label="Próbka" side="BOTTOM"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="CH1 (Vshunt → I) [jedn.]" side="LEFT"/>
+                    </yAxis>
+                </LineChart>
+            </VBox>
+
+            <!-- XY Chart and Canvas -->
+            <VBox VBox.vgrow="ALWAYS" minHeight="350">
+                <HBox spacing="5" HBox.hgrow="ALWAYS">
+                    <VBox.margin>
+                        <Insets top="10" bottom="10"/>
+                    </VBox.margin>
+
+                    <!-- XY Chart Container -->
+                    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" minWidth="300">
+                        <ScatterChart fx:id="xyChart" animated="false" legendVisible="false"
+                                      title="Pętla histerezy B-H" VBox.vgrow="ALWAYS">
+                            <xAxis>
+                                <NumberAxis side="BOTTOM"/>
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis side="LEFT"/>
+                            </yAxis>
+                        </ScatterChart>
+
+                        <!-- Custom Legend -->
+                        <HBox fx:id="customLegend" alignment="CENTER" spacing="15"
+                              style="-fx-background-color: rgba(255,255,255,0.9); -fx-background-radius: 5px; -fx-border-color: #ccc; -fx-border-width: 1px; -fx-border-radius: 5px;"
+                              maxHeight="40">
+                            <padding>
+                                <Insets top="5" right="10" bottom="5" left="10"/>
+                            </padding>
+                        </HBox>
+                    </VBox>
+
+                    <!-- Canvas Container -->
+                    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" minWidth="300"
+                          style="-fx-background-color: black; -fx-border-color: #666; -fx-border-width: 1;">
+                        <Label text="UŚREDNIONA PĘTLA HISTEREZY"
+                               style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: white;"
+                               maxHeight="30">
+                            <padding>
+                                <Insets top="5" right="0" bottom="5" left="10"/>
+                            </padding>
+                        </Label>
+                        <Pane fx:id="canvasContainer" VBox.vgrow="ALWAYS">
+                            <Canvas fx:id="hysteresisCanvas" />
+                        </Pane>
+                    </VBox>
+                </HBox>
+            </VBox>
+        </VBox>
+    </center>
+
+    <!-- Right side - Controls -->
+    <right>
+        <ScrollPane fitToWidth="true" BorderPane.alignment="CENTER">
+            <VBox spacing="10" minWidth="300" maxWidth="400">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+
+                <!-- Acquisition Configuration -->
+                <VBox spacing="10" style="-fx-background-color: #f0f0f0; -fx-border-color: #ccc; -fx-border-width: 1; -fx-border-radius: 5;">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+
+                    <Label text="KONFIGURACJA AKWIZYCJI" style="-fx-font-weight: bold;"/>
+
+                    <GridPane hgap="10" vgap="5">
+                        <Label text="Częstotliwość próbkowania [Hz]:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                        <Spinner fx:id="sampleRateSpinner" GridPane.rowIndex="0" GridPane.columnIndex="1"
+                                 prefWidth="150" editable="true"/>
+
+                        <Label text="Czas akwizycji [s]:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                        <Spinner fx:id="acquisitionTimeSpinner" GridPane.rowIndex="1" GridPane.columnIndex="1"
+                                 prefWidth="150" editable="true"/>
+
+                        <Label text="Rozmiar bufora [próbki]:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                        <Spinner fx:id="bufferSizeSpinner" GridPane.rowIndex="2" GridPane.columnIndex="1"
+                                 prefWidth="150" editable="true"/>
+
+                        <Label text="Szybkie ustawienia:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                        <HBox spacing="5" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                            <Button text="100ms" onAction="#handleQuick100ms"/>
+                            <Button text="1s" onAction="#handleQuick1s"/>
+                            <Button text="5s" onAction="#handleQuick5s"/>
+                        </HBox>
+                    </GridPane>
+
+                    <Label fx:id="infoLabel" text="Bufor: 4000 próbek, Czas: 0.4s" style="-fx-font-weight: bold;"/>
+                </VBox>
+
+                <!-- Acquire Button -->
+                <Button text="Rozpocznij pomiar" onAction="#handleAcquire"
+                        style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 10px;"
+                        maxWidth="Infinity"/>
+
+                <Separator/>
+
+                <!-- Statistics Panel -->
+                <VBox spacing="10" style="-fx-background-color: #e8f4f8; -fx-border-color: #4a90e2; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);">
+                    <padding>
+                        <Insets top="15" right="15" bottom="15" left="15"/>
+                    </padding>
+
+                    <Label text="STATYSTYKI POMIAROWE" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2c3e50;"/>
+
+                    <GridPane hgap="10" vgap="5">
+                        <Label text="" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                        <Label text="CH0 (B)" GridPane.rowIndex="0" GridPane.columnIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                        <Label text="CH1 (H)" GridPane.rowIndex="0" GridPane.columnIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+
+                        <Label text="Min" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #555;"/>
+                        <Label fx:id="min0" text="—" GridPane.rowIndex="1" GridPane.columnIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+                        <Label fx:id="min1" text="—" GridPane.rowIndex="1" GridPane.columnIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+
+                        <Label text="Max" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #555;"/>
+                        <Label fx:id="max0" text="—" GridPane.rowIndex="2" GridPane.columnIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+                        <Label fx:id="max1" text="—" GridPane.rowIndex="2" GridPane.columnIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+
+                        <Label text="P2P" GridPane.rowIndex="3" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #555;"/>
+                        <Label fx:id="p2p0" text="—" GridPane.rowIndex="3" GridPane.columnIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+                        <Label fx:id="p2p1" text="—" GridPane.rowIndex="3" GridPane.columnIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+
+                        <Label text="RMS" GridPane.rowIndex="4" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #555;"/>
+                        <Label fx:id="rms0" text="—" GridPane.rowIndex="4" GridPane.columnIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+                        <Label fx:id="rms1" text="—" GridPane.rowIndex="4" GridPane.columnIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f8f8f8; -fx-padding: 3px;"/>
+                    </GridPane>
+
+                    <Separator>
+                        <VBox.margin>
+                            <Insets top="5" right="0" bottom="5" left="0"/>
+                        </VBox.margin>
+                    </Separator>
+
+                    <GridPane hgap="10" vgap="5">
+                        <Label text="B_sat [T]" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #8e44ad;"/>
+                        <Label fx:id="bsatLabel" text="—" GridPane.rowIndex="0" GridPane.columnIndex="1" GridPane.columnSpan="2" style="-fx-font-weight: bold; -fx-text-fill: #8e44ad; -fx-background-color: #f0e6f5; -fx-padding: 3px;"/>
+
+                        <Label text="B_r [T]" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #8e44ad;"/>
+                        <Label fx:id="brLabel" text="—" GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="2" style="-fx-font-weight: bold; -fx-text-fill: #8e44ad; -fx-background-color: #f0e6f5; -fx-padding: 3px;"/>
+
+                        <Label text="H_c [A/m]" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #8e44ad;"/>
+                        <Label fx:id="hcLabel" text="—" GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="2" style="-fx-font-weight: bold; -fx-text-fill: #8e44ad; -fx-background-color: #f0e6f5; -fx-padding: 3px;"/>
+                    </GridPane>
+                </VBox>
+
+                <Separator/>
+
+                <!-- Physical Parameters -->
+                <Label text="PARAMETRY MAGNETYCZNE" style="-fx-font-weight: bold;"/>
+                <GridPane hgap="8" vgap="6">
+                    <Label text="N_exc – liczba zwojów cewki wzbudzającej" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="turnsExcField" text="100" GridPane.rowIndex="0" GridPane.columnIndex="1" prefWidth="100"/>
+
+                    <Label text="l_e – długość drogi magnetycznej [m]" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="pathLenField" text="0.1" GridPane.rowIndex="1" GridPane.columnIndex="1" prefWidth="100"/>
+
+                    <Label text="R_s – rezystancja bocznika [Ω]" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="shuntField" text="1.0" GridPane.rowIndex="2" GridPane.columnIndex="1" prefWidth="100"/>
+
+                    <Separator GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+
+                    <Label text="N_B – liczba zwojów cewki pomiarowej" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <TextField fx:id="turnsBField" text="50" GridPane.rowIndex="4" GridPane.columnIndex="1" prefWidth="100"/>
+
+                    <Label text="A_e – pole przekroju rdzenia [m²]" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <TextField fx:id="areaField" text="1e-4" GridPane.rowIndex="5" GridPane.columnIndex="1" prefWidth="100"/>
+                </GridPane>
+
+                <Separator/>
+
+                <!-- Analog Output Controls -->
+                <Label text="WYJŚCIE ANALOGOWE CH0" style="-fx-font-weight: bold;"/>
+                <GridPane hgap="10" vgap="8">
+                    <Label text="Kształt fali" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="waveBox" GridPane.rowIndex="0" GridPane.columnIndex="1" prefWidth="150"/>
+
+                    <Label text="Częstotliwość [Hz]" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Spinner fx:id="freqSpinner" GridPane.rowIndex="1" GridPane.columnIndex="1" prefWidth="150" editable="true"/>
+
+                    <Label text="Amplituda [V]" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <Spinner fx:id="ampSpinner" GridPane.rowIndex="2" GridPane.columnIndex="1" prefWidth="150" editable="true"/>
+
+                    <Label text="Offset [V]" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Spinner fx:id="offsetSpinner" GridPane.rowIndex="3" GridPane.columnIndex="1" prefWidth="150" editable="true"/>
+
+                    <Button text="Zastosuj i WŁĄCZ wyjście" onAction="#handleApplyAndOn" GridPane.rowIndex="4" GridPane.columnIndex="0" maxWidth="Infinity"/>
+                    <Button text="WYŁĄCZ wyjście" onAction="#handleOutputOff" GridPane.rowIndex="4" GridPane.columnIndex="1" maxWidth="Infinity"/>
+                </GridPane>
+            </VBox>
+        </ScrollPane>
+    </right>
+</BorderPane>
