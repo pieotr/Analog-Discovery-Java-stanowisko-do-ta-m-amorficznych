@@ -44,6 +44,7 @@ public class MainController implements Initializable {
     @FXML private LineChart<Number, Number> timeChartCH1; // Wykres czasowy dla kanału 1 (prąd I)
     @FXML private ScatterChart<Number, Number> xyChart;   // Wykres XY (histereza B-H)
     @FXML private Canvas hysteresisCanvas;                // Canvas do rysowania pętli histerezy
+    @FXML private javafx.scene.layout.Pane canvasContainer; // Kontener dla Canvas
     @FXML private HBox customLegend;
 
     @FXML private Label min0, max0, p2p0, rms0;           // Etykiety statystyk dla kanału 0
@@ -87,7 +88,18 @@ public class MainController implements Initializable {
         initializeSpinners();
         initializeFields();
         setupCustomLegend();
+        setupCanvasBinding();
         updateInfoLabel();
+    }
+
+    private void setupCanvasBinding() {
+        // Zbindowanie rozmiaru Canvas do rozmiaru kontenera Pane
+        canvasContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
+            hysteresisCanvas.setWidth(newVal.doubleValue());
+        });
+        canvasContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
+            hysteresisCanvas.setHeight(newVal.doubleValue());
+        });
     }
 
     private void initializeCharts() {
@@ -533,11 +545,21 @@ public class MainController implements Initializable {
             }
         }
 
-        if (risingX.isEmpty() || fallingX.isEmpty()) return;
+        System.out.println("DEBUG Canvas: risingX.size()=" + risingX.size() + ", fallingX.size()=" + fallingX.size());
+        System.out.println("DEBUG Canvas: width=" + w + ", height=" + h);
+
+        if (risingX.isEmpty() && fallingX.isEmpty()) {
+            System.out.println("DEBUG Canvas: Both lists empty, returning");
+            return;
+        }
 
         // Obliczenie zakresów dla skalowania na Canvas
-        double canvasXmin = Math.min(risingX.get(0), fallingX.get(0));
-        double canvasXmax = Math.max(risingX.get(risingX.size() - 1), fallingX.get(fallingX.size() - 1));
+        double canvasXmin = !risingX.isEmpty() && !fallingX.isEmpty() ?
+            Math.min(risingX.get(0), fallingX.get(0)) :
+            !risingX.isEmpty() ? risingX.get(0) : fallingX.get(0);
+        double canvasXmax = !risingX.isEmpty() && !fallingX.isEmpty() ?
+            Math.max(risingX.get(risingX.size() - 1), fallingX.get(fallingX.size() - 1)) :
+            !risingX.isEmpty() ? risingX.get(risingX.size() - 1) : fallingX.get(fallingX.size() - 1);
         double canvasYmin = Math.min(
                 risingY.stream().min(Double::compare).orElse(0.0),
                 fallingY.stream().min(Double::compare).orElse(0.0)
@@ -551,24 +573,36 @@ public class MainController implements Initializable {
         double sx = w / (canvasXmax - canvasXmin);  // Skala dla osi X
         double sy = h / (canvasYmax - canvasYmin);  // Skala dla osi Y
 
+        System.out.println("DEBUG Canvas: xmin=" + canvasXmin + ", xmax=" + canvasXmax);
+        System.out.println("DEBUG Canvas: ymin=" + canvasYmin + ", ymax=" + canvasYmax);
+        System.out.println("DEBUG Canvas: sx=" + sx + ", sy=" + sy);
+
         // Rysowanie uśrednionej pętli histerezy
         g.setStroke(Color.PURPLE);  // Kolor fioletowy
         g.setLineWidth(3);          // Grubość linii 3 piksele
         g.beginPath();              // Rozpoczęcie ścieżki
 
         // Rysowanie górnej gałęzi (rosnące x)
-        for (int i = 0; i < risingX.size(); i++) {
-            double x = (risingX.get(i) - canvasXmin) * sx;      // Transformacja x do pikseli
-            double y = h - (risingY.get(i) - canvasYmin) * sy;  // Transformacja y (odwrócenie osi Y)
-            if (i == 0) g.moveTo(x, y);  // Pierwszy punkt - przesunięcie bez rysowania
-            else g.lineTo(x, y);         // Kolejne punkty - rysowanie linii
+        if (!risingX.isEmpty()) {
+            for (int i = 0; i < risingX.size(); i++) {
+                double x = (risingX.get(i) - canvasXmin) * sx;      // Transformacja x do pikseli
+                double y = h - (risingY.get(i) - canvasYmin) * sy;  // Transformacja y (odwrócenie osi Y)
+                if (i == 0) g.moveTo(x, y);  // Pierwszy punkt - przesunięcie bez rysowania
+                else g.lineTo(x, y);         // Kolejne punkty - rysowanie linii
+            }
         }
 
         // Rysowanie dolnej gałęzi (malejące x) w odwrotnej kolejności dla zamkniętej pętli
-        for (int i = fallingX.size() - 1; i >= 0; i--) {
-            double x = (fallingX.get(i) - canvasXmin) * sx;
-            double y = h - (fallingY.get(i) - canvasYmin) * sy;
-            g.lineTo(x, y);
+        if (!fallingX.isEmpty()) {
+            if (risingX.isEmpty()) {
+                g.moveTo((fallingX.get(fallingX.size() - 1) - canvasXmin) * sx,
+                        h - (fallingY.get(fallingY.size() - 1) - canvasYmin) * sy);
+            }
+            for (int i = fallingX.size() - 1; i >= 0; i--) {
+                double x = (fallingX.get(i) - canvasXmin) * sx;
+                double y = h - (fallingY.get(i) - canvasYmin) * sy;
+                g.lineTo(x, y);
+            }
         }
 
         g.closePath();  // Zamknięcie ścieżki (powrót do pierwszego punktu)

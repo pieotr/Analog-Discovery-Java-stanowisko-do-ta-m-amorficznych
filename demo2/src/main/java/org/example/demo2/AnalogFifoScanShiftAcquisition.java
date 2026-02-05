@@ -29,7 +29,7 @@ public class AnalogFifoScanShiftAcquisition extends Application {
      * METODA START - PUNKT WEJŚCIA APLIKACJI JAVAFX
      *
      * Wywoływana automatycznie przez framework JavaFX po uruchomieniu aplikacji.
-     */
+     */m
     @Override
     public void start(Stage stage) throws Exception {
         // Tworzenie loadera FXML
