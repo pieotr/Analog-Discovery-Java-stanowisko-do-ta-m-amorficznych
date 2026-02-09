@@ -1,0 +1,64 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{geometry}
+\usepackage{tikz}
+\usepackage{pdflscape}
+\usetikzlibrary{positioning}
+\usepackage{tikz-uml}
+\geometry{margin=1.8cm}
+\title{Diagramy UML projektu: Analog-Discovery-Java-stanowisko-do-ta-m-amorficznych}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Diagram klas (główna aplikacja)}
+\begin{landscape}
+\begin{center}
+\begin{tikzpicture}[scale=1.0, transform shape]
+  \small
+  % External classes (row 1)
+  \umlclass[x=-10.5,y=6]{DWF}{}{}
+  \umlclass[x=0,y=6]{Application}{}{}
+  \umlclass[x=9,y=6]{Initializable}{}{}
+
+  % Core classes (row 2)
+  \umlclass[x=0,y=2]{AnalogFifoScanShiftAcquisition}{- controller: MainController}{+ start(stage: Stage)\\+ stop()\\+ main(args: String[])}
+  \umlclass[x=-10.5,y=2]{DataAcquisitionService}{- dwf: DWF\\- signalProcessingService: SignalProcessingService\\- acquiring: boolean}{+ acquire(config: AcquisitionConfig): HysteresisData\\+ configureAnalogIn(config: AcquisitionConfig)\\+ configureAnalogOut(wave: String, f: double, a: double, o: double)\\+ enableAnalogOut(enable: boolean)\\+ reset()}
+  \umlclass[x=9,y=2]{PhysicalParameters}{- turnsExc: double\\- pathLen: double\\- shunt: double\\- turnsB: double\\- area: double}{+ hScale(): double\\+ bScale(): double}
+
+  % Core classes (row 3)
+  \umlclass[x=0,y=-3.5]{MainController}{- dwf: DWF\\- acquisitionService: DataAcquisitionService\\- statisticsService: StatisticsService\\- signalProcessingService: SignalProcessingService\\- config: AcquisitionConfig\\- physicalParams: PhysicalParameters}{+ initialize(url: URL, rb: ResourceBundle)\\+ handleAcquire()\\+ handleApplyAndOn()\\+ handleOutputOff()\\+ shutdown()}
+  \umlclass[x=-10.5,y=-2]{SignalProcessingService}{}{+ integrate(v: double[], sampleRateHz: int): double[]\\+ interpolateAtX(x: List<Double>, y: List<Double>, x0: double): double\\+ interpolateAtY(x: List<Double>, y: List<Double>, y0: double): double}
+  \umlclass[x=8,y=-2]{AcquisitionConfig}{- sampleRateHz: int\\- bufferSize: int\\- acquisitionTime: double\\- inputRangeV: double}{+ calculateBufferFromTime(): int\\+ calculateTimeFromBuffer(): double}
+
+  % Core classes (row 4)
+  \umlclass[x=0,y=-7.5]{StatisticsService}{}{+ compute(v: double[]): Stats}
+  \umlclass[x=9,y=-7]{Stats}{\textless\textless inner\textgreater\textgreater\\- min: double\\- max: double\\- p2p: double\\- rms: double}{+ getMin(): String\\+ getMax(): String\\+ getP2p(): String\\+ getRms(): String}
+  \umlclass[x=-12,y=-6]{HysteresisData}{- ch0Data: double[]\\- ch1Data: double[]\\- ch0Integrated: double[]}{+ getCh0Data(): double[]\\+ getCh1Data(): double[]\\+ getCh0Integrated(): double[]}
+
+  % Relationships
+  \umlinherit{AnalogFifoScanShiftAcquisition}{Application}
+  \umlinherit{MainController}{Initializable}
+
+  \umlassoc{AnalogFifoScanShiftAcquisition}{MainController}
+  \umlassoc{MainController}{DataAcquisitionService}
+  \umlassoc{MainController}{DWF}
+  \umlassoc{MainController}{StatisticsService}
+  \umlassoc{MainController}{SignalProcessingService}
+  \umlassoc{MainController}{AcquisitionConfig}
+  \umlassoc{MainController}{PhysicalParameters}
+  \umlassoc{MainController}{HysteresisData}
+
+  \umlassoc{DataAcquisitionService}{DWF}
+  \umlassoc{DataAcquisitionService}{SignalProcessingService}
+  \umlassoc{StatisticsService}{Stats}
+\end{tikzpicture}
+\end{center}
+\end{landscape}
+
+
+\end{document}
