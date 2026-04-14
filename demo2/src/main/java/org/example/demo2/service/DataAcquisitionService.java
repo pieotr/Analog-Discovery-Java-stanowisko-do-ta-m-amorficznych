@@ -66,7 +66,7 @@ public class DataAcquisitionService {
                 collected += r;
             }
 
-            double[] ch0Int = signalProcessingService.integrate(ch0, config.getSampleRateHz());
+            double[] ch0Int = signalProcessingService.integrateZeroMeanInAndOut(ch0, config.getSampleRateHz());
 
             return new HysteresisData(ch0, ch1, ch0Int);
         } finally {

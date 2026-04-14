@@ -140,6 +140,10 @@
                         style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 10px;"
                         maxWidth="Infinity"/>
 
+                <Button text="Rozpocznij pomiar Kalibracyjny" onAction="#handleAcquireCAlibration"
+                        style="-fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 10px;"
+                        maxWidth="Infinity"/>
+
                 <Separator/>
 
                 <!-- Statistics Panel -->

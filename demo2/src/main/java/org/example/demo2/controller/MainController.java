@@ -75,6 +75,8 @@ public class MainController implements Initializable {
     private AcquisitionConfig config;
     private PhysicalParameters physicalParams;
 
+    private double calibrationSlope; // stores the linear regression slope value
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Inicjalizacja wszystkich komponentów przy uruchomieniu kontrolera
@@ -261,26 +263,112 @@ public class MainController implements Initializable {
 
     @FXML
     private void handleAcquire() {
-        // Obsługa przycisku "Acquire" - rozpoczyna akwizycję danych
-        updateAcquisitionParameters();                   // Aktualizacja parametrów przed pomiarem
+        // Update acquisition parameters before measurement
+        updateAcquisitionParameters();
 
-        // Uruchomienie akwizycji w osobnym wątku, aby nie blokować interfejsu użytkownika
+        // Run acquisition in a separate thread to keep UI responsive
         new Thread(() -> {
             try {
-                // Akwizycja danych z urządzenia (pomiar napięć na obu kanałach)
+                // Acquire data from the device (voltages on both channels)
                 HysteresisData data = acquisitionService.acquire(config);
 
-                // Aktualizacja UI musi być wykonana w wątku JavaFX (Platform.runLater)
+                // Apply calibration: subtract the linear trend from output channel
+                double[] ch0Int = data.getCh0Integrated();
+                double[] ch1Raw = data.getCh1Data();
+                double[] ch1Calibrated = applyCalibration(ch0Int, ch1Raw);
+
+                // Update UI must be done on the JavaFX Application Thread
                 Platform.runLater(() -> {
-                    updateStats(data.getCh0Integrated(), data.getCh1Data());        // Obliczenie statystyk
-                    updateTimeChart(data.getCh0Integrated(), data.getCh1Data());    // Rysowanie wykresów czasowych
-                    updateXYChart(data.getCh0Integrated(), data.getCh1Data());      // Rysowanie wykresu XY
-                    drawHysteresisLoop(data.getCh0Integrated(), data.getCh1Data()); // Rysowanie pętli na Canvas
+                    // Use calibrated data for all visualizations
+                    updateStats(ch0Int, ch1Calibrated);
+                    updateTimeChart(ch0Int, ch1Calibrated);
+                    updateXYChart(ch0Int, ch1Calibrated);
+                    drawHysteresisLoop(ch0Int, ch1Calibrated);
                 });
             } catch (Exception e) {
-                e.printStackTrace();                   // Obsługa błędów
+                e.printStackTrace();
             }
-        }).start();                                    // Start wątku akwizycji
+        }).start();
+    }
+
+    /**
+     * Applies the stored calibration slope to remove linear dependence from output data.
+     * Corrected output = original output - slope * input
+     */
+    private double[] applyCalibration(double[] input, double[] output) {
+        if (input == null || output == null || input.length != output.length) {
+            return output; // fallback
+        }
+        double[] corrected = new double[output.length];
+        // Use stored calibrationSlope (defaults to 0.0 if never set)
+        double slope = (calibrationSlope != 0.0) ? calibrationSlope : 0.0;
+        for (int i = 0; i < output.length; i++) {
+            corrected[i] = output[i] - slope * input[i];
+        }
+        return corrected;
+    }
+
+
+    @FXML
+    private void handleAcquireCAlibration() {
+        // Update acquisition parameters before measurement
+        updateAcquisitionParameters();
+
+        // Run acquisition in a separate thread to keep UI responsive
+        new Thread(() -> {
+            try {
+                // Acquire data from the device (voltages on both channels)
+                HysteresisData data = acquisitionService.acquire(config);
+
+                // Perform linear regression on the acquired data
+                double[] x = data.getCh0Integrated(); // input (integrated)
+                double[] y = data.getCh1Data();       // output
+
+                // Compute linear regression slope (y = a + b*x)
+                double slope = calculateSlope(x, y);
+
+                // Store the result in the class field (make it accessible elsewhere)
+                calibrationSlope = slope;
+
+                // Update UI must be done on the JavaFX Application Thread
+                Platform.runLater(() -> {
+                    // (Optional) You can update UI elements with the new slope value,
+                    // e.g., display it in a label: slopeLabel.setText(String.format("%.4f", calibrationSlope));
+
+                    // Uncomment the following lines if you want to update charts as originally intended:
+                    // updateStats(data.getCh0Integrated(), data.getCh1Data());
+                    // updateTimeChart(data.getCh0Integrated(), data.getCh1Data());
+                    // updateXYChart(data.getCh0Integrated(), data.getCh1Data());
+                    // drawHysteresisLoop(data.getCh0Integrated(), data.getCh1Data());
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    /**
+     * Helper method to calculate the slope (b) of the linear regression line y = a + b*x.
+     * Uses simple least-squares estimation.
+     */
+    private double calculateSlope(double[] x, double[] y) {
+        if (x.length != y.length || x.length == 0) {
+            throw new IllegalArgumentException("Arrays must have same non-zero length");
+        }
+        int n = x.length;
+        double sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        for (int i = 0; i < n; i++) {
+            sumX += x[i];
+            sumY += y[i];
+            sumXY += x[i] * y[i];
+            sumXX += x[i] * x[i];
+        }
+        double denominator = n * sumXX - sumX * sumX;
+        if (denominator == 0) {
+            return Double.NaN; // or throw an exception
+        }
+        double slope = (n * sumXY - sumX * sumY) / denominator;
+        return slope;
     }
 
     @FXML

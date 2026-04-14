@@ -121,6 +121,97 @@ public class SignalProcessingService {
      * @return tablica scałkowanych wartości (proporcjonalnych do B)
      *         (wyjście z całkowania)
      */
+
+
+
+    /**
+     * Performs pure numerical integration (trapezoidal rule) on a uniformly sampled signal.
+     * <p>
+     * This is a perfect discrete-time integrator: y[n] = y[n-1] + (dt/2) * (x[n] + x[n-1]).
+     * No forgetting factor is applied – the output will grow indefinitely in the presence of a DC offset.
+     * </p>
+     *
+     * @param v            input signal array (e.g., induced voltage)
+     * @param sampleRateHz sampling frequency in Hz
+     * @return integrated signal, where out[i] = ∫₀^{i·dt} v(t) dt  (approximated by trapezoidal rule)
+     */
+    public double[] integrateProperly(double[] v, int sampleRateHz) {
+        if (v.length == 0) {
+            return new double[0];
+        }
+
+        double dt = 1.0 / sampleRateHz;
+        double halfDt = dt / 2.0;
+
+        double[] out = new double[v.length];
+
+        // Initial condition: assume integration starts from zero at t=0.
+        out[0] = 0.0;                 // or could be 0.5 * v[0] * dt if half-step is preferred
+        double integral = 0.0;
+
+        // Trapezoidal integration: ∫ f(t) dt ≈ Σ (f(t_i) + f(t_{i-1})) * dt/2
+        for (int i = 1; i < v.length; i++) {
+            integral += (v[i] + v[i - 1]) * halfDt;
+            out[i] = integral;
+        }
+
+        // If you prefer the first sample to reflect the area of the first half‑interval,
+        // uncomment the line below and remove the out[0]=0 assignment.
+        // out[0] = v[0] * halfDt;
+        // for (int i = 1; i < v.length; i++) { ... }
+
+        return out;
+    }
+
+
+
+    /**
+     * Performs pure numerical integration after removing the DC offset from the input signal.
+     * <p>
+     * The DC offset is estimated as the arithmetic mean of the entire input array and subtracted
+     * before integration. This ensures that a perfectly periodic input yields a bounded,
+     * zero‑mean integrated output.
+     * </p>
+     *
+     * @param v            input signal array (e.g., induced voltage)
+     * @param sampleRateHz sampling frequency in Hz
+     * @return integrated signal with zero DC component in the input
+     */
+    public double[] integrateWithDCRemoval(double[] v, int sampleRateHz) {
+        if (v.length == 0) {
+            return new double[0];
+        }
+
+        // ---- Step 1: Estimate and remove DC offset ----
+        double sum = 0.0;
+        for (double value : v) {
+            sum += value;
+        }
+        double mean = sum / v.length;
+
+        // Create a zero‑mean copy of the input (or modify in‑place if allowed)
+        double[] vZeroMean = new double[v.length];
+        for (int i = 0; i < v.length; i++) {
+            vZeroMean[i] = v[i] - mean;
+        }
+
+        // ---- Step 2: Pure trapezoidal integration ----
+        double dt = 1.0 / sampleRateHz;
+        double halfDt = dt / 2.0;
+        double[] out = new double[v.length];
+
+        // Initial condition: integration starts at zero
+        out[0] = 0.0;
+        double integral = 0.0;
+
+        for (int i = 1; i < vZeroMean.length; i++) {
+            integral += (vZeroMean[i] + vZeroMean[i - 1]) * halfDt;
+            out[i] = integral;
+        }
+
+        return out;
+    }
+
     public double[] integrate(double[] v, int sampleRateHz) {
         // ===== PARAMETRY FILTRU RC =====
 
@@ -186,6 +277,104 @@ public class SignalProcessingService {
         // Każdy element out[i] jest proporcjonalny do indukcji magnetycznej B
         // w momencie czasu t = i * dt
         // Aby otrzymać rzeczywiste wartości B [T], należy przemnożyć przez bScale()
+        return out;
+    }
+
+
+    /**
+     * Performs pure numerical integration (trapezoidal rule) and forces the output
+     * to have zero mean. This is ideal for periodic signals where the integral over
+     * a full cycle is zero, but the recorded window may not be an integer number of
+     * periods or may contain a small drift.
+     *
+     * @param v            input signal array (e.g., induced voltage)
+     * @param sampleRateHz sampling frequency in Hz
+     * @return integrated signal with zero average value
+     */
+    public double[] integrateWithZeroMeanOutput(double[] v, int sampleRateHz) {
+        if (v.length < 2) {
+            return new double[v.length]; // cannot integrate meaningfully
+        }
+
+        double dt = 1.0 / sampleRateHz;
+        double halfDt = dt / 2.0;
+
+        // ---- Step 1: Pure trapezoidal integration ----
+        double[] out = new double[v.length];
+        out[0] = 0.0;
+        double integral = 0.0;
+        for (int i = 1; i < v.length; i++) {
+            integral += (v[i] + v[i - 1]) * halfDt;
+            out[i] = integral;
+        }
+
+        // ---- Step 2: Remove DC offset from the output ----
+        double sumOut = 0.0;
+        for (double val : out) {
+            sumOut += val;
+        }
+        double meanOut = sumOut / out.length;
+
+        for (int i = 0; i < out.length; i++) {
+            out[i] -= meanOut;
+        }
+
+        return out;
+    }
+
+
+    /**
+     * Integrates a signal with two corrections:
+     * 1. Removes DC offset from the input before integration (prevents linear drift).
+     * 2. Forces the integrated output to have zero mean (centers the waveform).
+     *
+     * <p>This is ideal for periodic signals where the true integral over a full cycle is zero,
+     * but the recorded window may contain a DC bias or a non‑integer number of periods.</p>
+     *
+     * @param v            input signal array (e.g., induced voltage from a search coil)
+     * @param sampleRateHz sampling frequency in Hz
+     * @return integrated signal with zero average value, free from DC‑induced drift
+     */
+    public double[] integrateZeroMeanInAndOut(double[] v, int sampleRateHz) {
+        if (v.length == 0) {
+            return new double[0];
+        }
+
+        // ---- Step 1: Remove DC offset from the INPUT ----
+        double sumInput = 0.0;
+        for (double val : v) {
+            sumInput += val;
+        }
+        double meanInput = sumInput / v.length;
+
+        double[] vZeroMean = new double[v.length];
+        for (int i = 0; i < v.length; i++) {
+            vZeroMean[i] = v[i] - meanInput;
+        }
+
+        // ---- Step 2: Pure trapezoidal integration ----
+        double dt = 1.0 / sampleRateHz;
+        double halfDt = dt / 2.0;
+        double[] out = new double[v.length];
+
+        out[0] = 0.0;                // integration starts at zero
+        double integral = 0.0;
+        for (int i = 1; i < vZeroMean.length; i++) {
+            integral += (vZeroMean[i] + vZeroMean[i - 1]) * halfDt;
+            out[i] = integral;
+        }
+
+        // ---- Step 3: Remove DC offset from the OUTPUT ----
+        double sumOutput = 0.0;
+        for (double val : out) {
+            sumOutput += val;
+        }
+        double meanOutput = sumOutput / out.length;
+
+        for (int i = 0; i < out.length; i++) {
+            out[i] -= meanOutput;
+        }
+
         return out;
     }
 
